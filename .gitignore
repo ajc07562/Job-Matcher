@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+venv/
+.venv/
+.env
+data/jobs.json
+data/*.index
+data/*.faiss
+job_matcher.db
+.streamlit/
+*.egg-info/
+.pytest_cache/

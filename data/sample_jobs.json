@@ -1,0 +1,152 @@
+[
+  {
+    "id": "sample-001",
+    "company": "Notion",
+    "title": "Machine Learning Engineer, New Grad",
+    "location": "San Francisco, CA",
+    "description": "Join our AI team to build features powered by large language models. You'll work on retrieval systems, prompt engineering, and model evaluation. We're looking for new grads with strong Python fundamentals and coursework or projects in machine learning.",
+    "requirements": "BS in Computer Science or related field. Strong Python skills. Familiarity with PyTorch or TensorFlow. Experience with NLP or LLMs through coursework or personal projects is a plus. 0-2 years of experience.",
+    "url": "https://example.com/jobs/1",
+    "seniority": "entry"
+  },
+  {
+    "id": "sample-002",
+    "company": "Figma",
+    "title": "Staff Machine Learning Engineer",
+    "location": "San Francisco, CA",
+    "description": "Lead the design and scaling of our recommendation infrastructure. You'll set technical direction for the ML platform team and mentor senior engineers.",
+    "requirements": "8+ years of experience in machine learning engineering. Deep expertise in distributed systems, Kubernetes, and large-scale model serving. Track record of technical leadership.",
+    "url": "https://example.com/jobs/2",
+    "seniority": "staff"
+  },
+  {
+    "id": "sample-003",
+    "company": "Stripe",
+    "title": "Software Engineer, New Grad",
+    "location": "Remote",
+    "description": "Build core payments infrastructure used by millions of businesses. New grad engineers rotate through teams in their first year including risk, fraud detection, and API platform.",
+    "requirements": "BS/MS in Computer Science. Proficiency in at least one of Python, Java, or Go. Strong understanding of data structures and algorithms. Git and REST API experience preferred.",
+    "url": "https://example.com/jobs/3",
+    "seniority": "entry"
+  },
+  {
+    "id": "sample-004",
+    "company": "Airbnb",
+    "title": "Data Scientist, Machine Learning",
+    "location": "Remote",
+    "description": "Apply machine learning to improve search ranking and personalization. You'll partner with engineering to ship models to production.",
+    "requirements": "MS or PhD in a quantitative field, or equivalent experience. 3-5 years applying ML in production. Strong SQL and Python skills. Experience with scikit-learn and pandas.",
+    "url": "https://example.com/jobs/4",
+    "seniority": "mid"
+  },
+  {
+    "id": "sample-005",
+    "company": "Scale AI",
+    "title": "AI Research Intern",
+    "location": "San Francisco, CA",
+    "description": "Summer internship working on generative AI evaluation and data quality for foundation model training.",
+    "requirements": "Currently pursuing BS/MS in CS, Math, or related field. Experience with Python and PyTorch. Coursework in machine learning or NLP.",
+    "url": "https://example.com/jobs/5",
+    "seniority": "intern"
+  },
+  {
+    "id": "sample-006",
+    "company": "Databricks",
+    "title": "MLOps Engineer",
+    "location": "Remote",
+    "description": "Build and maintain the infrastructure that powers ML model deployment across the company. You'll own CI/CD pipelines for model training and serving.",
+    "requirements": "2-4 years of experience with MLOps, Docker, Kubernetes, and cloud infrastructure (AWS or GCP). Python required. Experience with Airflow or similar orchestration tools.",
+    "url": "https://example.com/jobs/6",
+    "seniority": "mid"
+  },
+  {
+    "id": "sample-007",
+    "company": "Ramp",
+    "title": "Backend Software Engineer, New Grad",
+    "location": "New York, NY",
+    "description": "Build the backend systems powering corporate card issuing and expense management. New grads join a team and ship production code within their first month.",
+    "requirements": "BS in Computer Science. Solid understanding of data structures, algorithms, and system design fundamentals. Experience with any backend language (Python, Java, Go, Ruby).",
+    "url": "https://example.com/jobs/7",
+    "seniority": "entry"
+  },
+  {
+    "id": "sample-008",
+    "company": "Anthropic",
+    "title": "Research Engineer",
+    "location": "San Francisco, CA",
+    "description": "Work on training and evaluating large language models. Close collaboration with research scientists on experiments at scale.",
+    "requirements": "Strong software engineering fundamentals. Experience with PyTorch or JAX. 5+ years of experience in ML engineering or a related field, or equivalent research experience.",
+    "url": "https://example.com/jobs/8",
+    "seniority": "senior"
+  },
+  {
+    "id": "sample-009",
+    "company": "Brex",
+    "title": "Data Analyst",
+    "location": "Remote",
+    "description": "Support finance and product teams with data-driven insights. Build dashboards and run ad hoc analyses to inform business decisions.",
+    "requirements": "BS in a quantitative field. Proficiency in SQL and Excel. Experience with Tableau or Power BI is a plus. 0-2 years of experience welcome.",
+    "url": "https://example.com/jobs/9",
+    "seniority": "entry"
+  },
+  {
+    "id": "sample-010",
+    "company": "OpenAI",
+    "title": "Applied AI Engineer",
+    "location": "San Francisco, CA",
+    "description": "Build products and internal tools on top of our models. You'll design prompts, build evaluation harnesses, and ship generative AI features end to end.",
+    "requirements": "3+ years of software engineering experience. Strong Python skills. Experience building with LLMs, RAG systems, or prompt engineering. Familiarity with vector databases is a plus.",
+    "url": "https://example.com/jobs/10",
+    "seniority": "mid"
+  },
+  {
+    "id": "sample-011",
+    "company": "Snowflake",
+    "title": "Solutions Engineer, New Grad",
+    "location": "Remote",
+    "description": "Partner with sales to demonstrate the technical value of our data platform to prospective customers. Great fit for someone who likes both technical problem-solving and talking to people.",
+    "requirements": "BS in a technical field or equivalent experience. Basic SQL knowledge. Strong communication skills. No prior sales experience required.",
+    "url": "https://example.com/jobs/11",
+    "seniority": "entry"
+  },
+  {
+    "id": "sample-012",
+    "company": "Two Sigma",
+    "title": "Quantitative Research Associate",
+    "location": "New York, NY",
+    "description": "Apply statistical and machine learning methods to financial data as part of a research team building trading strategies.",
+    "requirements": "BS/MS in Computer Science, Statistics, Math, or Physics. Strong Python and statistics background. Machine learning coursework or project experience.",
+    "url": "https://example.com/jobs/12",
+    "seniority": "entry"
+  },
+  {
+    "id": "sample-013",
+    "company": "Datadog",
+    "title": "Principal Machine Learning Engineer",
+    "location": "New York, NY",
+    "description": "Define the long-term technical strategy for anomaly detection across our observability platform.",
+    "requirements": "10+ years of experience. Deep expertise in time-series modeling, distributed systems, and technical leadership at scale.",
+    "url": "https://example.com/jobs/13",
+    "seniority": "principal"
+  },
+  {
+    "id": "sample-014",
+    "company": "Hugging Face",
+    "title": "Machine Learning Engineer Intern",
+    "location": "Remote",
+    "description": "Contribute to open-source ML libraries and help build tooling for the transformers ecosystem.",
+    "requirements": "Currently enrolled in a BS/MS program. Experience with Python and PyTorch. Contributions to open source are a strong plus.",
+    "url": "https://example.com/jobs/14",
+    "seniority": "intern"
+  },
+  {
+    "id": "sample-015",
+    "company": "Instacart",
+    "title": "Data Engineer, New Grad",
+    "location": "San Francisco, CA",
+    "description": "Build and maintain data pipelines that power recommendation and search systems across the app.",
+    "requirements": "BS in Computer Science. Proficiency in Python and SQL. Familiarity with Spark, Airflow, or similar data pipeline tools is a plus but not required.",
+    "url": "https://example.com/jobs/15",
+    "seniority": "entry"
+  }
+]
