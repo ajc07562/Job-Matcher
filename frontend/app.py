@@ -40,7 +40,7 @@ if run:
     if not resume_text.strip():
         st.warning("Paste a resume or check 'Use sample resume' first.")
     else:
-        with st.spinner("Embedding, ranking, and (if enabled) generating explanations..."):
+        with st.spinner("Embedding, ranking, and (if enabled) generating explanations. Please wait patiently..."):
             try:
                 resp = requests.post(
                     f"{API_URL}/match",

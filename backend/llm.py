@@ -2,36 +2,52 @@
 LLM layer — used ONLY to generate natural-language explanations for matches that
 have already been scored and ranked deterministically (see ranker.py).
 
-Earlier version had the LLM do the ranking itself ("here are 50 jobs and a resume,
-rank them"). Dropped that approach: it was slow, cost scaled badly, and re-running
-the same inputs gave different orderings since generation isn't deterministic. The
-LLM is much better used for the part it's actually suited to — turning a computed
-match + skill gap into a readable two-sentence explanation.
+Supports two providers so the app can run entirely for free:
+  - "anthropic": Claude API (best quality, costs money per call)
+  - "ollama":    a local open-source model via Ollama (github.com/ollama/ollama),
+                 completely free, no account, runs on your own machine
 
-If ANTHROPIC_API_KEY isn't set, this degrades gracefully: match_result.explanation
-stays None and the rest of the app (retrieval + ranking) works exactly the same.
+LLM_PROVIDER="auto" (the default) prefers Anthropic if ANTHROPIC_API_KEY is set,
+otherwise tries a local Ollama server, and falls back to a placeholder message if
+neither is reachable — the rest of the app (retrieval + ranking) always works
+regardless of which path is taken here.
+
+To run for $0: install Ollama (https://ollama.com), run `ollama pull llama3.2`,
+leave ANTHROPIC_API_KEY unset in .env, and the app will use it automatically.
 """
-from backend.config import ANTHROPIC_API_KEY
+import requests
+
+from backend.config import ANTHROPIC_API_KEY, LLM_PROVIDER, OLLAMA_HOST, OLLAMA_MODEL
 from backend.models import MatchResult
 
-_client = None
+_anthropic_client = None
 if ANTHROPIC_API_KEY:
     import anthropic
 
-    _client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
+    _anthropic_client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
+
+
+def _ollama_is_reachable() -> bool:
+    try:
+        resp = requests.get(f"{OLLAMA_HOST}/api/tags", timeout=1.5)
+        return resp.status_code == 200
+    except requests.exceptions.RequestException:
+        return False
 
 
 def is_available() -> bool:
-    return _client is not None
+    """Whether *some* explanation provider is usable right now."""
+    if LLM_PROVIDER == "anthropic":
+        return _anthropic_client is not None
+    if LLM_PROVIDER == "ollama":
+        return _ollama_is_reachable()
+    # auto
+    return _anthropic_client is not None or _ollama_is_reachable()
 
 
-def explain_match(resume_text: str, result: MatchResult) -> str:
-    """Generate a short, grounded explanation of why a job is (or isn't) a good fit."""
-    if _client is None:
-        return "(Set ANTHROPIC_API_KEY to enable AI-generated match explanations.)"
-
+def _build_prompt(resume_text: str, result: MatchResult) -> str:
     job = result.job
-    prompt = f"""You are helping a job seeker understand a ranked job match. Be concise,
+    return f"""You are helping a job seeker understand a ranked job match. Be concise,
 specific, and grounded ONLY in the information given below — do not invent skills or
 experience that isn't stated.
 
@@ -54,9 +70,50 @@ Write exactly two things, each 1-2 sentences:
 
 Keep the total response under 80 words. No preamble, no headers other than the two labels."""
 
-    response = _client.messages.create(
+
+def _explain_with_anthropic(prompt: str) -> str:
+    response = _anthropic_client.messages.create(
         model="claude-sonnet-4-6",
         max_tokens=250,
         messages=[{"role": "user", "content": prompt}],
     )
     return "".join(block.text for block in response.content if block.type == "text").strip()
+
+
+def _explain_with_ollama(prompt: str) -> str:
+    resp = requests.post(
+        f"{OLLAMA_HOST}/api/generate",
+        json={"model": OLLAMA_MODEL, "prompt": prompt, "stream": False},
+        timeout=60,
+    )
+    resp.raise_for_status()
+    data = resp.json()
+    return data.get("response", "").strip()
+
+
+def explain_match(resume_text: str, result: MatchResult) -> str:
+    """Generate a short, grounded explanation of why a job is (or isn't) a good fit."""
+    prompt = _build_prompt(resume_text, result)
+
+    if LLM_PROVIDER == "anthropic":
+        provider_order = ["anthropic"]
+    elif LLM_PROVIDER == "ollama":
+        provider_order = ["ollama"]
+    else:
+        provider_order = ["anthropic", "ollama"]  # auto: prefer Anthropic, fall back to local
+
+    for provider in provider_order:
+        try:
+            if provider == "anthropic" and _anthropic_client is not None:
+                return _explain_with_anthropic(prompt)
+            if provider == "ollama" and _ollama_is_reachable():
+                return _explain_with_ollama(prompt)
+        except requests.exceptions.RequestException as e:
+            # Try the next provider in the chain rather than failing the whole match request
+            print(f"[llm] {provider} explanation failed: {e}")
+            continue
+
+    return (
+        "(No explanation available — set ANTHROPIC_API_KEY in .env, or install Ollama "
+        "and run `ollama pull llama3.2` for free local explanations.)"
+    )

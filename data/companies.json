@@ -1,0 +1,11 @@
+{
+  "_note": "Best-effort list of companies commonly known to use Greenhouse for public job boards. Board tokens can differ from the company name and change over time — ingest.py already skips any token that 404s, so it's safe to run as-is, but verify/expand this list yourself: visit a company's careers page and look for a URL like boards.greenhouse.io/<token> or job-boards.greenhouse.io/<token> to confirm the exact token.",
+  "companies": [
+    "stripe", "airbnb", "notion", "figma", "doordash", "robinhood", "coinbase",
+    "affirm", "asana", "discord", "instacart", "pinterest", "reddit", "peloton",
+    "squarespace", "datadog", "hubspot", "gusto", "brex", "ramp", "plaid",
+    "webflow", "retool", "scaleai", "anduril", "flexport", "gitlab",
+    "elastic", "cloudflare", "twilio", "confluent", "mongodb", "samsara",
+    "grammarly", "duolingo", "canva", "airtable", "zapier", "calendly"
+  ]
+}

@@ -12,6 +12,7 @@ Written as a pluggable source so a Lever/Workday ingester can be added later
 without touching downstream code (embeddings/ranker only care about the Job schema).
 
 Usage:
+    python backend/ingest.py                       # uses data/companies.json (broad default list)
     python backend/ingest.py --companies stripe airbnb notion figma --out data/jobs.json
 """
 import argparse
@@ -20,13 +21,21 @@ import json
 import re
 import sys
 from pathlib import Path
+from typing import List
 
 import requests
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from backend.config import DATA_DIR  # noqa: E402
 from backend.models import Job  # noqa: E402
 
 GREENHOUSE_URL = "https://boards-api.greenhouse.io/v1/boards/{token}/jobs?content=true"
+DEFAULT_COMPANIES_FILE = DATA_DIR / "companies.json"
+
+
+def load_default_companies() -> List[str]:
+    with open(DEFAULT_COMPANIES_FILE) as f:
+        return json.load(f)["companies"]
 
 
 def _strip_html(raw: str) -> str:
@@ -66,16 +75,24 @@ def fetch_company_jobs(board_token: str) -> list[Job]:
 
 def main():
     parser = argparse.ArgumentParser(description="Fetch jobs from Greenhouse job boards")
-    parser.add_argument("--companies", nargs="+", required=True,
-                         help="Greenhouse board tokens, e.g. stripe airbnb notion")
+    parser.add_argument("--companies", nargs="+", default=None,
+                         help="Greenhouse board tokens, e.g. stripe airbnb notion. "
+                              "Omit to use the default list in data/companies.json.")
     parser.add_argument("--out", default="data/jobs.json")
     args = parser.parse_args()
 
+    companies = args.companies or load_default_companies()
+    print(f"Fetching {len(companies)} companies"
+          + (" (default list)" if args.companies is None else "") + "...\n")
+
     all_jobs: list[Job] = []
-    for company in args.companies:
+    skipped = []
+    for company in companies:
         print(f"Fetching {company}...")
         jobs = fetch_company_jobs(company)
         print(f"  -> {len(jobs)} listings")
+        if not jobs:
+            skipped.append(company)
         all_jobs.extend(jobs)
 
     out_path = Path(args.out)
@@ -84,6 +101,11 @@ def main():
         json.dump([j.model_dump() for j in all_jobs], f, indent=2)
 
     print(f"\nWrote {len(all_jobs)} total jobs to {out_path}")
+    if skipped:
+        print(f"\n{len(skipped)} board token(s) returned nothing (wrong token, or company "
+              f"doesn't use Greenhouse for that name): {', '.join(skipped)}")
+        print("Check their careers page for the exact token in the URL "
+              "(boards.greenhouse.io/<token>) and fix data/companies.json if you want to keep them.")
 
 
 if __name__ == "__main__":

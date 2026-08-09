@@ -8,8 +8,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from backend import auth, db
-from backend.config import JOBS_FILE, SAMPLE_JOBS_FILE
+from backend.config import AUTO_REFRESH_JOBS, JOBS_FILE, REFRESH_INTERVAL_HOURS, SAMPLE_JOBS_FILE
 from backend.embeddings import embed_text, embed_texts, job_text_for_embedding
+from backend.ingest import fetch_company_jobs, load_default_companies
 from backend.llm import explain_match, is_available as llm_available
 from backend.models import (
     Job,
@@ -23,6 +24,7 @@ from backend.models import (
     UserOut,
 )
 from backend.ranker import rank_jobs
+from backend.scheduler import build_default_scheduler
 from backend.skills import infer_seniority
 from backend.vectorstore import JobVectorStore
 
@@ -73,6 +75,26 @@ def _build_store() -> JobVectorStore:
     return store
 
 
+def _refresh_and_rebuild() -> None:
+    """Re-run ingestion against the default company list, write data/jobs.json,
+    and rebuild the in-memory vector index from the fresh data. Used by both the
+    manual /reload endpoint and the optional background scheduler."""
+    global _store
+    companies = load_default_companies()
+    all_jobs: list[Job] = []
+    for company in companies:
+        all_jobs.extend(fetch_company_jobs(company))
+
+    JOBS_FILE.parent.mkdir(parents=True, exist_ok=True)
+    with open(JOBS_FILE, "w") as f:
+        json.dump([j.model_dump() for j in all_jobs], f, indent=2)
+
+    _store = _build_store()
+
+
+_scheduler = build_default_scheduler(_refresh_and_rebuild)
+
+
 @app.on_event("startup")
 def startup():
     global _store
@@ -80,6 +102,17 @@ def startup():
     _store = _build_store()
     print(f"Loaded {len(_store)} jobs into the vector index.")
     print(f"LLM explanations {'enabled' if llm_available() else 'disabled (no ANTHROPIC_API_KEY)'}.")
+    if _scheduler is not None:
+        _scheduler.start()
+        print(f"Auto-refresh enabled: re-ingesting every {REFRESH_INTERVAL_HOURS}h.")
+    else:
+        print("Auto-refresh disabled (set AUTO_REFRESH_JOBS=true in .env to enable).")
+
+
+@app.on_event("shutdown")
+def shutdown():
+    if _scheduler is not None:
+        _scheduler.stop()
 
 
 @app.get("/health")
@@ -147,10 +180,20 @@ def unsave_match(job_id: str, current_user=Depends(get_current_user)):
 
 @app.post("/reload")
 def reload_jobs():
-    """Rebuild the index — call after running ingest.py to pull in fresh listings."""
+    """Rebuild the index from whatever's currently in data/jobs.json (or the sample
+    data if that file doesn't exist) — call after manually running ingest.py."""
     global _store
     _store = _build_store()
     return {"status": "reloaded", "jobs_indexed": len(_store)}
+
+
+@app.post("/jobs/refresh")
+def refresh_jobs():
+    """Live-fetch the default company list from Greenhouse right now and rebuild the
+    index — the on-demand equivalent of what the auto-refresh scheduler does on a timer.
+    Synchronous and can take a while depending on how many companies are configured."""
+    _refresh_and_rebuild()
+    return {"status": "refreshed", "jobs_indexed": len(_store)}
 
 
 def _guess_resume_seniority(resume_text: str) -> str:
