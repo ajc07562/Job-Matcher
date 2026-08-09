@@ -65,8 +65,13 @@ measured effect of this vs. embeddings alone.
   cost, no rate limit. This is deliberate: it means the retrieval half of the system has
   zero dependency on a paid API and still works if the LLM key is missing.
 - **Vector index:** FAISS (flat index, cosine similarity via normalized inner product)
-- **LLM layer:** Anthropic Claude API, used only for the explanation/gap-analysis text —
-  never for retrieval or ranking, so a bad/expensive LLM call can't break the core matching.
+- **LLM layer:** used only for the explanation/gap-analysis text — never for retrieval
+  or ranking, so a bad/expensive LLM call can't break the core matching. Supports two
+  providers (`backend/llm.py`): Anthropic's Claude API (best quality, costs money), or
+  a free local model via [Ollama](https://ollama.com) — no account, $0. Set
+  `LLM_PROVIDER=ollama` in `.env` (after `ollama pull llama3.2`) to run explanations
+  for free; the default `auto` mode prefers Claude if a key is set and falls back to
+  Ollama otherwise.
 - **Job source:** Greenhouse's public job board API (`boards-api.greenhouse.io`) — real,
   legal, stable JSON endpoints that many companies use for their public listings. A local
   `data/sample_jobs.json` fallback is included so the project runs with zero network setup.
