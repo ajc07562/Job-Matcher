@@ -4,6 +4,8 @@ const user = Auth.getUser();
 document.getElementById("user-email").textContent = user ? user.email : "";
 
 let savedJobIds = new Set();
+let currentResults = []; // holds the last /match response so onclick handlers can reference results by index instead of embedding raw data in HTML attributes
+let currentHistory = []; // same pattern for the saved-matches history list
 
 function scoreClass(score) {
   if (score >= 0.7) return "high";
@@ -11,7 +13,7 @@ function scoreClass(score) {
   return "low";
 }
 
-function renderJobCard(result) {
+function renderJobCard(result, index) {
   const job = result.job;
   const cls = scoreClass(result.final_score);
   const isSaved = savedJobIds.has(job.id);
@@ -27,6 +29,17 @@ function renderJobCard(result) {
 
   const urlHtml = job.url
     ? `<a href="${escapeHtml(job.url)}" target="_blank" rel="noopener">View listing →</a>`
+    : "";
+
+  // Job description shown collapsed by default (<details>/<summary>) so long
+  // postings don't dominate the card. Always goes through escapeHtml — never
+  // raw-inserted — and the CSS on .description-box wraps/contains long text
+  // and long unbroken strings (URLs etc.) instead of letting them overflow.
+  const descriptionHtml = job.description
+    ? `<details class="description-toggle">
+         <summary>Full job description</summary>
+         <div class="description-box">${escapeHtml(job.description)}</div>
+       </details>`
     : "";
 
   return `
@@ -47,10 +60,11 @@ function renderJobCard(result) {
 
       ${matchedChips || missingChips ? `<div class="skill-chips">${matchedChips}${missingChips}</div>` : ""}
       ${explanationHtml}
+      ${descriptionHtml}
 
       <div class="job-card-actions">
         ${urlHtml}
-        <button class="btn-save ${isSaved ? "saved" : ""}" onclick='toggleSave(this, ${JSON.stringify(result)})'>
+        <button class="btn-save ${isSaved ? "saved" : ""}" onclick="toggleSave(this, ${index})">
           ${isSaved ? "★ Saved" : "☆ Save"}
         </button>
       </div>
@@ -89,6 +103,7 @@ async function findMatches() {
       throw new Error(err.detail || "Request failed.");
     }
     const results = await resp.json();
+    currentResults = results;
 
     if (results.length === 0) {
       resultsList.innerHTML = `<div class="empty-state">No matches found.</div>`;
@@ -103,7 +118,8 @@ async function findMatches() {
   }
 }
 
-async function toggleSave(btnEl, result) {
+async function toggleSave(btnEl, index) {
+  const result = currentResults[index];
   const job = result.job;
   const isSaved = savedJobIds.has(job.id);
 
@@ -144,6 +160,7 @@ async function loadHistory() {
     const resp = await authFetch("/matches/history");
     if (!resp.ok) return;
     const history = await resp.json();
+    currentHistory = history;
     savedJobIds = new Set(history.map(function (h) { return h.job_id; }));
     updateSavedCount();
 
@@ -152,7 +169,7 @@ async function loadHistory() {
       listEl.innerHTML = `<div class="empty-state">No saved matches yet.</div>`;
       return;
     }
-    listEl.innerHTML = history.map(function (h) {
+    listEl.innerHTML = history.map(function (h, idx) {
       return `
       <div class="job-card">
         <div class="job-card-head">
@@ -164,7 +181,7 @@ async function loadHistory() {
         ${h.explanation ? `<div class="explanation-box">${escapeHtml(h.explanation)}</div>` : ""}
         <div class="job-card-actions">
           ${h.url ? `<a href="${escapeHtml(h.url)}" target="_blank" rel="noopener">View listing →</a>` : ""}
-          <button class="btn-save saved" onclick="removeSaved(this, '${h.job_id}')">★ Saved</button>
+          <button class="btn-save saved" onclick="removeSaved(this, ${idx})">★ Saved</button>
         </div>
       </div>
     `;
@@ -174,7 +191,8 @@ async function loadHistory() {
   }
 }
 
-async function removeSaved(btnEl, jobId) {
+async function removeSaved(btnEl, index) {
+  const jobId = currentHistory[index].job_id;
   await authFetch("/matches/" + encodeURIComponent(jobId), { method: "DELETE" });
   savedJobIds.delete(jobId);
   updateSavedCount();

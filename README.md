@@ -78,6 +78,36 @@ measured effect of this vs. embeddings alone.
 - **Frontend:** Streamlit (kept intentionally simple — this project's signal is the
   retrieval/ranking/eval pipeline, not UI polish)
 
+## Getting real jobs into the matcher
+
+Important to understand: the app doesn't fetch new listings per resume — a resume is
+matched against whatever's currently sitting in the vector index. So "real jobs" is
+really two separate things: getting a real corpus in there, and keeping it from going
+stale.
+
+**One-time real pull** (broad default company list, no args needed):
+```bash
+python backend/ingest.py --out data/jobs.json
+uvicorn backend.main:app --reload --port 8000  # picks up data/jobs.json automatically
+```
+`backend/ingest.py` defaults to the company list in `data/companies.json` — about 40
+companies known to use Greenhouse. Some tokens will 404 and get skipped (Greenhouse
+board tokens don't always match the company name exactly); the script tells you which
+ones at the end so you can look up the correct token on that company's careers page and
+fix `data/companies.json`.
+
+**Keeping it fresh without re-running the script by hand:** set `AUTO_REFRESH_JOBS=true`
+in `.env` and the server will re-fetch the full company list on a timer
+(`REFRESH_INTERVAL_HOURS`, default 24h) in a background thread, rebuilding the index
+each time — no restart needed. There's also `POST /jobs/refresh` to trigger the same
+thing on demand (e.g. from a cron job or manually), and `POST /reload`, which just
+rebuilds the index from whatever's already in `data/jobs.json` without hitting the
+network (useful right after you've manually edited `data/companies.json` or run
+`ingest.py` yourself with a custom `--companies` list).
+
+Auto-refresh is off by default because it's an outbound-network side effect running on
+a timer — worth turning on deliberately, not silently.
+
 ## Auth & the web UI
 
 The app has a real login/signup flow and a custom-designed frontend (not Streamlit —
