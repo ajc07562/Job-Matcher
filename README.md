@@ -16,34 +16,34 @@ tell you *why* a match is good or what skill gap to close. This tool fixes both.
 ## Architecture
 
 ```
-                        ┌─────────────────────┐
+                        ┌───────────────────-──┐
                         │  Greenhouse Job      │
                         │  Board APIs          │  (ingest.py)
                         └──────────┬───────────┘
                                    │ raw listings (JSON)
                                    ▼
-                        ┌─────────────────────┐
+                        ┌──────────────────-───┐
                         │  Skill Extraction    │  (skills.py)
                         │  (taxonomy match)    │
                         └──────────┬───────────┘
                                    ▼
-   ┌──────────┐         ┌─────────────────────┐
+   ┌──────────┐         ┌──────────────────-───┐
    │  Resume  │────────▶│  Embedding Model     │  (embeddings.py)
    │  (text)  │         │  sentence-transformers│  local, no API key
    └──────────┘         └──────────┬───────────┘
                                    ▼
-                        ┌─────────────────────┐
+                        ┌─────────────────-────┐
                         │  FAISS Vector Index  │  (vectorstore.py)
                         └──────────┬───────────┘
                                    ▼
-                        ┌─────────────────────┐
+                        ┌────────────────--────┐
                         │  Hybrid Re-Ranker    │  (ranker.py)
                         │  0.6 cosine sim      │
                         │  0.3 skill overlap   │
                         │  0.1 seniority fit   │
                         └──────────┬───────────┘
                                    ▼
-                        ┌─────────────────────┐
+                        ┌───────────────-──────┐
                         │  Claude API          │  (llm.py)
                         │  "why this fits" +   │
                         │  gap analysis         │
@@ -107,6 +107,24 @@ network (useful right after you've manually edited `data/companies.json` or run
 
 Auto-refresh is off by default because it's an outbound-network side effect running on
 a timer — worth turning on deliberately, not silently.
+
+## Filters & sorting
+
+The results page has a filter bar: sort (best match / newest posted / oldest posted),
+company, seniority level, location (substring match), remote-only, and a minimum score
+slider. All filters combine with AND logic (`backend/ranker.py::filter_results`).
+
+Filtering happens **after** ranking, not before — the `/match` endpoint pulls a much
+larger embedding-search candidate pool whenever any filter or non-default sort is
+active (up to 500 jobs vs. the normal ~20-30), so narrowing by e.g. "remote only"
+doesn't silently starve results that would've matched well but weren't in the initial
+small candidate pool.
+
+"Newest"/"oldest" sort by `posted_at`, sourced from Greenhouse's `updated_at` field —
+an imperfect proxy for original posting date (it's the last-edited time, not
+first-published), but it's the best signal that API actually exposes. Postings with no
+parseable date are pushed to the end of either sort direction rather than treated as
+arbitrarily old or new.
 
 ## Auth & the web UI
 
@@ -213,6 +231,13 @@ also demoted a handful of listings that were topically close (e.g. "Data Analyst
 - Greenhouse-only ingestion misses companies using Lever, Workday, etc. Ingestion is
   written as a pluggable interface (`backend/ingest.py`) specifically so more sources
   can be added without touching the ranking/embedding code.
+
+## Deployment
+
+Containerized (`Dockerfile` + `docker-compose.yml`) — one container running the
+FastAPI backend + static frontend, an optional second container for free local LLM
+explanations via Ollama, and a named volume so the SQLite user database and job
+data survive restarts. See **`DEPLOYMENT.md`** for a full AWS EC2 walkthrough.
 
 ## Project structure
 
