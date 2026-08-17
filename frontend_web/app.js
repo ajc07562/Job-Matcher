@@ -7,10 +7,42 @@ let savedJobIds = new Set();
 let currentResults = []; // holds the last /match response so onclick handlers can reference results by index instead of embedding raw data in HTML attributes
 let currentHistory = []; // same pattern for the saved-matches history list
 
+const SENIORITY_LABELS = {
+  intern: "Intern", entry: "Entry", mid: "Mid",
+  senior: "Senior", staff: "Staff", principal: "Principal",
+};
+
 function scoreClass(score) {
   if (score >= 0.7) return "high";
   if (score >= 0.45) return "mid";
   return "low";
+}
+
+async function loadCompanyOptions() {
+  try {
+    const resp = await authFetch("/jobs/companies");
+    if (!resp.ok) return;
+    const data = await resp.json();
+    const select = document.getElementById("filter-company");
+    for (const company of data.companies || []) {
+      const opt = document.createElement("option");
+      opt.value = company;
+      opt.textContent = company;
+      select.appendChild(opt);
+    }
+  } catch (err) {
+    // Non-critical — the dropdown just stays at "Any" if this fails.
+  }
+}
+
+function resetFilters() {
+  document.getElementById("filter-sort").value = "best_match";
+  document.getElementById("filter-company").value = "";
+  document.getElementById("filter-seniority").value = "";
+  document.getElementById("filter-location").value = "";
+  document.getElementById("filter-remote").checked = false;
+  document.getElementById("filter-min-score").value = 0;
+  document.getElementById("filter-min-score-value").textContent = "0%";
 }
 
 function renderJobCard(result, index) {
@@ -50,7 +82,7 @@ function renderJobCard(result, index) {
       <div class="job-card-head">
         <div>
           <div class="job-title">${escapeHtml(job.title)} — ${escapeHtml(job.company)}</div>
-          <div class="job-meta">${escapeHtml(job.location || "")}</div>
+          <div class="job-meta">${escapeHtml(job.location || "")}${job.location ? " · " : ""}${escapeHtml(SENIORITY_LABELS[result.job_seniority] || result.job_seniority)}</div>
         </div>
         <div class="score-badge ${cls}">${Math.round(result.final_score * 100)}%</div>
       </div>
@@ -144,9 +176,26 @@ async function findMatches() {
 
   try {
     const explain = document.getElementById("explain-checkbox").checked;
+    const sortBy = document.getElementById("filter-sort").value;
+    const company = document.getElementById("filter-company").value;
+    const seniority = document.getElementById("filter-seniority").value;
+    const location = document.getElementById("filter-location").value.trim();
+    const remoteOnly = document.getElementById("filter-remote").checked;
+    const minScorePercent = parseInt(document.getElementById("filter-min-score").value, 10);
+
     const resp = await authFetch("/match", {
       method: "POST",
-      body: JSON.stringify({ resume_text: resumeText, top_k: 10, explain: explain }),
+      body: JSON.stringify({
+        resume_text: resumeText,
+        top_k: 10,
+        explain: explain,
+        sort_by: sortBy,
+        company: company || null,
+        seniority: seniority || null,
+        location: location || null,
+        remote_only: remoteOnly,
+        min_score: minScorePercent / 100,
+      }),
     });
     if (!resp.ok) {
       const err = await resp.json().catch(function () { return {}; });
@@ -156,7 +205,7 @@ async function findMatches() {
     currentResults = results;
 
     if (results.length === 0) {
-      resultsList.innerHTML = `<div class="empty-state">No matches found.</div>`;
+      resultsList.innerHTML = `<div class="empty-state">No matches found. Try loosening your filters (min score, location, or level) and search again.</div>`;
     } else {
       resultsList.innerHTML = results.map(renderJobCard).join("");
     }
@@ -256,5 +305,6 @@ function toggleHistory() {
   if (show) loadHistory();
 }
 
-// Load saved-match ids on page load so "Save" buttons render correctly from the start.
+// Load saved-match ids and available filter options on page load.
 loadHistory();
+loadCompanyOptions();
