@@ -43,6 +43,57 @@
       <button class="btn-find" id="find-btn" onclick="findMatches()">Find matches</button>
     </div>
 
+    <div class="filters-bar">
+      <div class="filter-field">
+        <label for="filter-sort">Sort</label>
+        <select id="filter-sort">
+          <option value="best_match">Best match</option>
+          <option value="newest">Newest posted</option>
+          <option value="oldest">Oldest posted</option>
+        </select>
+      </div>
+
+      <div class="filter-field">
+        <label for="filter-company">Company</label>
+        <select id="filter-company">
+          <option value="">Any</option>
+        </select>
+      </div>
+
+      <div class="filter-field">
+        <label for="filter-seniority">Level</label>
+        <select id="filter-seniority">
+          <option value="">Any</option>
+          <option value="intern">Intern</option>
+          <option value="entry">Entry</option>
+          <option value="mid">Mid</option>
+          <option value="senior">Senior</option>
+          <option value="staff">Staff</option>
+          <option value="principal">Principal</option>
+        </select>
+      </div>
+
+      <div class="filter-field">
+        <label for="filter-location">Location contains</label>
+        <input type="text" id="filter-location" placeholder="e.g. Poland, New York" />
+      </div>
+
+      <div class="filter-field filter-field-checkbox">
+        <label class="checkbox-row" for="filter-remote">
+          <input type="checkbox" id="filter-remote" />
+          Remote only
+        </label>
+      </div>
+
+      <div class="filter-field">
+        <label for="filter-min-score">Min score: <span id="filter-min-score-value">0%</span></label>
+        <input type="range" id="filter-min-score" min="0" max="100" step="5" value="0"
+               oninput="document.getElementById('filter-min-score-value').textContent = this.value + '%'" />
+      </div>
+
+      <button class="btn-ghost filter-reset" onclick="resetFilters()">Reset filters</button>
+    </div>
+
     <div class="section-title">Results</div>
     <div id="results-list">
       <div class="empty-state">Paste a resume above and click "Find matches" to get ranked results.</div>
