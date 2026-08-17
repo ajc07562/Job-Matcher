@@ -1,0 +1,26 @@
+Jordan Lee
+B.S. Computer Science, Class of 2026
+
+SKILLS
+Python, SQL, Git, Data Structures and Algorithms, scikit-learn, pandas, numpy,
+PyTorch (coursework), basic AWS, REST APIs
+
+PROJECTS
+- Built a RAG-powered job matching app using sentence-transformers, FAISS, and the
+  Claude API. Implemented hybrid ranking combining embedding similarity with skill
+  overlap and seniority scoring. Wrote an evaluation harness measuring precision@5.
+- Course project: trained a CNN in PyTorch for image classification, achieved 91%
+  test accuracy on CIFAR-10. Wrote up experiments comparing three architectures.
+- Contributed a bug fix and a small feature to an open-source Python data library.
+
+EXPERIENCE
+Teaching Assistant, Intro to Machine Learning (2 semesters)
+- Held office hours, graded assignments, helped ~40 students debug PyTorch code.
+
+Software Engineering Intern, Summer 2025
+- Built internal tooling in Python and Flask. Wrote unit tests, used Git for
+  version control, participated in an agile/scrum team.
+
+COURSEWORK
+Data Structures & Algorithms, Machine Learning, Natural Language Processing,
+Database Systems, Statistics, Distributed Systems

@@ -1,0 +1,17 @@
+# Version floors, not hard pins — hard-pinning exact versions (what this file used
+# to do) breaks silently once PyPI stops hosting an old release, which is exactly
+# what happened with faiss-cpu here. Floors give pip room to resolve to whatever's
+# currently available while still guaranteeing the API surface this code relies on.
+fastapi>=0.115.0
+uvicorn>=0.30.6
+pydantic>=2.9.2
+sentence-transformers>=3.1.1
+faiss-cpu>=1.9.0
+numpy>=1.26.4
+requests>=2.32.3
+anthropic>=0.34.2
+streamlit>=1.38.0
+python-dotenv>=1.0.1
+pytest>=8.3.3
+pdfplumber>=0.11.0
+python-multipart>=0.0.9

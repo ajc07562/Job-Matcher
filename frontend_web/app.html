@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Job Matcher</title>
+<link rel="stylesheet" href="/style.css?v=3" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.6/purify.min.js"></script>
+</head>
+<body>
+
+<div class="app-shell">
+
+  <div class="topbar">
+    <div class="brand">JOB <span style="color: var(--accent)">MATCHER</span></div>
+    <div class="topbar-right">
+      <span class="user-pill" id="user-email"></span>
+      <button class="btn-ghost" onclick="toggleHistory()">Saved (<span id="saved-count">0</span>)</button>
+      <button class="btn-ghost" onclick="Auth.logout()">Log out</button>
+    </div>
+  </div>
+
+  <div class="main-container">
+
+    <div id="history-panel" style="display:none; margin-bottom: 36px;">
+      <div class="section-title">Saved matches</div>
+      <div id="history-list"></div>
+    </div>
+
+    <div class="section-title">Your resume</div>
+    <div class="resume-upload-row">
+      <label class="btn-ghost" for="pdf-upload">Upload PDF instead</label>
+      <input type="file" id="pdf-upload" accept="application/pdf" onchange="handlePdfUpload(event)" />
+      <span id="pdf-upload-status" class="pdf-upload-status"></span>
+    </div>
+    <textarea id="resume-input" placeholder="Paste your resume text here..."></textarea>
+
+    <div class="controls-row">
+      <label class="checkbox-row">
+        <input type="checkbox" id="explain-checkbox" checked />
+        Generate AI fit explanations
+      </label>
+      <button class="btn-find" id="find-btn" onclick="findMatches()">Find matches</button>
+    </div>
+
+    <div class="section-title">Results</div>
+    <div id="results-list">
+      <div class="empty-state">Paste a resume above and click "Find matches" to get ranked results.</div>
+    </div>
+
+  </div>
+</div>
+
+<script src="/auth.js?v=3"></script>
+<script src="/app.js?v=3"></script>
+</body>
+</html>

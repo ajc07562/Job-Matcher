@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Job Matcher — Sign in</title>
+<link rel="stylesheet" href="/style.css?v=3" />
+</head>
+<body>
+
+<div class="auth-shell">
+
+  <!-- Left: pitch + signature gauge -->
+  <div class="auth-pitch">
+    <div>
+      <div class="brand">JOB <span>MATCHER</span></div>
+
+      <div class="pitch-headline">Find roles that<br />actually fit.</div>
+      <div class="pitch-sub">
+        Semantic search over real listings, ranked by skill overlap and
+        seniority fit — not just keyword match.
+      </div>
+
+      <div class="gauge-wrap">
+        <div class="gauge">
+          <svg width="128" height="128" viewBox="0 0 128 128">
+            <circle class="gauge-track" cx="64" cy="64" r="54" />
+            <circle id="gauge-fill" class="gauge-fill" cx="64" cy="64" r="54" />
+          </svg>
+          <div class="gauge-number" id="gauge-number">0%</div>
+        </div>
+        <div class="gauge-caption">
+          <strong>This is a fit score.</strong>
+          Every match you get is scored like this — embedding similarity,
+          skill overlap, and seniority fit, combined.
+        </div>
+      </div>
+
+      <div class="pipeline">
+        <div class="pipeline-step">
+          <span class="step-label">01</span>
+          <span class="step-text"><strong>Embed</strong> your resume and every job listing into the same vector space.</span>
+        </div>
+        <div class="pipeline-step">
+          <span class="step-label">02</span>
+          <span class="step-text"><strong>Rank</strong> by a blend of semantic similarity, skill overlap, and seniority fit.</span>
+        </div>
+        <div class="pipeline-step">
+          <span class="step-label">03</span>
+          <span class="step-text"><strong>Explain</strong> each match in plain language, and what's missing to close the gap.</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="pitch-footer">Built with sentence-transformers, FAISS, and Claude.</div>
+  </div>
+
+  <!-- Right: auth form -->
+  <div class="auth-form-panel">
+    <div class="auth-form-card">
+
+      <div class="tabs">
+        <button class="tab active" id="tab-login" onclick="switchTab('login')">SIGN IN</button>
+        <button class="tab" id="tab-signup" onclick="switchTab('signup')">CREATE ACCOUNT</button>
+      </div>
+
+      <div class="form-error" id="form-error"></div>
+
+      <!-- Login form -->
+      <form id="login-form" onsubmit="return handleLogin(event)">
+        <div class="field">
+          <label for="login-email">Email</label>
+          <input type="email" id="login-email" required autocomplete="email" />
+        </div>
+        <div class="field">
+          <label for="login-password">Password</label>
+          <input type="password" id="login-password" required autocomplete="current-password" />
+        </div>
+        <button type="submit" class="btn-primary" id="login-submit">Sign in</button>
+      </form>
+      <div class="switch-hint" id="login-hint">
+        New here? <a href="#" onclick="switchTab('signup'); return false;">Create an account</a>
+      </div>
+
+      <!-- Signup form -->
+      <form id="signup-form" style="display:none" onsubmit="return handleSignup(event)">
+        <div class="field">
+          <label for="signup-email">Email</label>
+          <input type="email" id="signup-email" required autocomplete="email" />
+        </div>
+        <div class="field">
+          <label for="signup-password">Password</label>
+          <input type="password" id="signup-password" required autocomplete="new-password" minlength="8" />
+          <div class="field-hint">At least 8 characters.</div>
+        </div>
+        <button type="submit" class="btn-primary" id="signup-submit">Create account</button>
+      </form>
+      <div class="switch-hint" id="signup-hint" style="display:none">
+        Already have an account? <a href="#" onclick="switchTab('login'); return false;">Sign in</a>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<script src="/auth.js?v=3"></script>
+<script>
+  Auth.redirectIfLoggedIn();
+
+  function switchTab(which) {
+    const isLogin = which === "login";
+    document.getElementById("tab-login").classList.toggle("active", isLogin);
+    document.getElementById("tab-signup").classList.toggle("active", !isLogin);
+    document.getElementById("login-form").style.display = isLogin ? "block" : "none";
+    document.getElementById("signup-form").style.display = isLogin ? "none" : "block";
+    document.getElementById("login-hint").style.display = isLogin ? "block" : "none";
+    document.getElementById("signup-hint").style.display = isLogin ? "none" : "block";
+    hideError();
+  }
+
+  function showError(msg) {
+    const el = document.getElementById("form-error");
+    el.textContent = msg;
+    el.classList.add("visible");
+  }
+  function hideError() {
+    document.getElementById("form-error").classList.remove("visible");
+  }
+
+  async function handleLogin(e) {
+    e.preventDefault();
+    hideError();
+    const btn = document.getElementById("login-submit");
+    btn.disabled = true;
+    btn.textContent = "Signing in…";
+    try {
+      const resp = await fetch("/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: document.getElementById("login-email").value,
+          password: document.getElementById("login-password").value,
+        }),
+      });
+      const data = await resp.json();
+      if (!resp.ok) throw new Error(data.detail || "Login failed.");
+      Auth.setSession(data.access_token, data.user);
+      window.location.href = "/app.html";
+    } catch (err) {
+      showError(err.message);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = "Sign in";
+    }
+    return false;
+  }
+
+  async function handleSignup(e) {
+    e.preventDefault();
+    hideError();
+    const btn = document.getElementById("signup-submit");
+    btn.disabled = true;
+    btn.textContent = "Creating account…";
+    try {
+      const resp = await fetch("/auth/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: document.getElementById("signup-email").value,
+          password: document.getElementById("signup-password").value,
+        }),
+      });
+      const data = await resp.json();
+      if (!resp.ok) throw new Error(data.detail || "Signup failed.");
+      Auth.setSession(data.access_token, data.user);
+      window.location.href = "/app.html";
+    } catch (err) {
+      showError(err.message);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = "Create account";
+    }
+    return false;
+  }
+
+  // Signature element: animate the gauge to a fixed demo value on load.
+  (function animateGauge() {
+    const target = 92; // circumference-relative target percentage, purely illustrative
+    const circumference = 339.3;
+    const offset = circumference - (target / 100) * circumference;
+    const fill = document.getElementById("gauge-fill");
+    const numberEl = document.getElementById("gauge-number");
+
+    requestAnimationFrame(() => {
+      fill.style.strokeDashoffset = offset;
+    });
+
+    const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (prefersReducedMotion) {
+      numberEl.textContent = target + "%";
+      return;
+    }
+
+    let current = 0;
+    const duration = 1400;
+    const start = performance.now();
+    function tick(now) {
+      const progress = Math.min((now - start) / duration, 1);
+      current = Math.round(progress * target);
+      numberEl.textContent = current + "%";
+      if (progress < 1) requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+  })();
+</script>
+
+</body>
+</html>
