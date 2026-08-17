@@ -11,12 +11,21 @@ class Job(BaseModel):
     requirements: str = ""
     url: Optional[str] = ""
     seniority: Optional[str] = None  # inferred if not provided
+    posted_at: Optional[str] = None  # ISO 8601 string; None for sources that don't provide it
 
 
 class MatchRequest(BaseModel):
     resume_text: str
     top_k: int = 10
     explain: bool = True  # whether to call the LLM for explanations
+
+    # --- Filters (all optional; None/False/0 means "no filter applied") ---
+    location: Optional[str] = None       # case-insensitive substring match against job.location
+    remote_only: bool = False            # keep only jobs whose location mentions "remote"
+    min_score: float = 0.0               # keep only jobs with final_score >= this (0-1 scale)
+    company: Optional[str] = None        # exact match, case-insensitive, against job.company
+    seniority: Optional[str] = None      # one of SENIORITY_LEVELS, or None for any level
+    sort_by: str = "best_match"          # "best_match" | "newest" | "oldest"
 
 
 class MatchResult(BaseModel):
@@ -27,6 +36,7 @@ class MatchResult(BaseModel):
     final_score: float
     matched_skills: list[str]
     missing_skills: list[str]
+    job_seniority: str  # the level this job was scored against (inferred if not on the posting)
     explanation: Optional[str] = None
 
 
