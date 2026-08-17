@@ -1,0 +1,17 @@
+__pycache__/
+*.pyc
+venv/
+*.venv/
+.env
+*.db
+.DS_Store
+
+data/jobs.json
+data/*.index
+data/*.faiss
+
+.streamlit/
+*.egg-info/
+.pytest_cache/
+
+
