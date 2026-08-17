@@ -23,7 +23,7 @@ from backend.models import (
     TokenResponse,
     UserOut,
 )
-from backend.ranker import rank_jobs
+from backend.ranker import filter_results, rank_jobs, sort_results
 from backend.resume_parser import PdfParseError, extract_text_from_pdf
 from backend.scheduler import build_default_scheduler
 from backend.skills import infer_seniority
@@ -253,22 +253,54 @@ async def extract_resume_text(file: UploadFile = File(...)):
     return {"text": text}
 
 
+@app.get("/jobs/companies")
+def list_companies():
+    """Distinct company names currently in the index — powers the company filter
+    dropdown in the UI so it only ever offers values that actually return results."""
+    if _store is None:
+        return {"companies": []}
+    companies = sorted({job.company for job in _store.jobs})
+    return {"companies": companies}
+
+
 @app.post("/match", response_model=list[MatchResult])
 def match(req: MatchRequest):
     if _store is None or len(_store) == 0:
         raise HTTPException(status_code=503, detail="Job index not ready or empty.")
 
     query_vec = embed_text(req.resume_text)
-    candidates = _store.search(query_vec, top_k=max(req.top_k * 3, 20))
+
+    # Filtering/sorting happens AFTER ranking, so pulling only a small top-K
+    # candidate pool (fine when nothing else narrows results) would silently starve
+    # results once filters are active — e.g. asking for remote-only jobs from a
+    # pool of 20 best-embedding-match candidates could easily return zero, even if
+    # plenty of remote matches exist further down. Pull a much larger pool whenever
+    # any filter or non-default sort is active.
+    filters_active = any([
+        req.location, req.remote_only, req.min_score > 0, req.company,
+        req.seniority, req.sort_by != "best_match",
+    ])
+    pool_size = min(len(_store), 500) if filters_active else max(req.top_k * 3, 20)
+    candidates = _store.search(query_vec, top_k=pool_size)
     resume_seniority = _guess_resume_seniority(req.resume_text)
 
-    ranked = rank_jobs(candidates, req.resume_text, resume_seniority)[: req.top_k]
+    ranked = rank_jobs(candidates, req.resume_text, resume_seniority)
+    filtered = filter_results(
+        ranked,
+        location=req.location,
+        remote_only=req.remote_only,
+        min_score=req.min_score,
+        company=req.company,
+        seniority=req.seniority,
+    )
+    sorted_results = sort_results(filtered, req.sort_by)
+    final = sorted_results[: req.top_k]
 
     if req.explain and llm_available():
-        for result in ranked:
+        for result in final:
             result.explanation = explain_match(req.resume_text, result)
 
-    return ranked
+    return final
 
 
 # Serve the static frontend (login/signup + app UI) last, as a catch-all,
