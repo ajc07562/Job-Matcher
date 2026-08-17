@@ -408,6 +408,71 @@
    .btn-find:hover { opacity: 0.88; }
    .btn-find:disabled { opacity: 0.5; cursor: not-allowed; }
    
+   .filters-bar {
+     display: flex;
+     flex-wrap: wrap;
+     align-items: end;
+     gap: 16px;
+     padding: 16px;
+     margin-bottom: 28px;
+     background: var(--surface);
+     border: 1px solid var(--border);
+     border-radius: var(--radius-md);
+   }
+   
+   .filter-field {
+     display: flex;
+     flex-direction: column;
+     gap: 6px;
+     min-width: 130px;
+   }
+   
+   .filter-field label {
+     font-family: var(--font-mono);
+     font-size: 11px;
+     letter-spacing: 0.06em;
+     text-transform: uppercase;
+     color: var(--text-muted);
+     white-space: nowrap;
+   }
+   
+   .filter-field select,
+   .filter-field input[type="text"] {
+     background: var(--surface-raised);
+     border: 1px solid var(--border-light);
+     border-radius: var(--radius-sm);
+     color: var(--text-primary);
+     font-family: var(--font-body);
+     font-size: 13px;
+     padding: 8px 10px;
+   }
+   .filter-field select:focus,
+   .filter-field input[type="text"]:focus {
+     border-color: var(--accent);
+     outline: none;
+   }
+   
+   .filter-field input[type="range"] {
+     width: 140px;
+     accent-color: var(--accent);
+   }
+   
+   .filter-field-checkbox {
+     justify-content: flex-end;
+     padding-bottom: 8px;
+   }
+   
+   .filter-reset {
+     margin-left: auto;
+     align-self: flex-end;
+   }
+   
+   @media (max-width: 700px) {
+     .filters-bar { flex-direction: column; align-items: stretch; }
+     .filter-field { min-width: 0; }
+     .filter-reset { margin-left: 0; }
+   }
+   
    .job-card {
      background: var(--surface);
      border: 1px solid var(--border);
