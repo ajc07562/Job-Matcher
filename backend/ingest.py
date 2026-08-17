@@ -102,6 +102,11 @@ def fetch_company_jobs(board_token: str) -> list[Job]:
                 description=display_content,
                 requirements=plain_content,
                 url=item.get("absolute_url", ""),
+                # Greenhouse's job board API doesn't expose an original "posted" date,
+                # only "updated_at" (bumps whenever the listing is edited). It's an
+                # imperfect proxy for "newest"/"oldest" sort but the best signal this
+                # API actually provides.
+                posted_at=item.get("updated_at"),
             )
         )
     return jobs
