@@ -40,6 +40,33 @@ class MatchResult(BaseModel):
     explanation: Optional[str] = None
 
 
+# --- Embedding space visualization ---
+
+class EmbeddingSpaceRequest(BaseModel):
+    resume_text: str
+    max_jobs: int = 300      # cap on how many jobs get projected/clustered, for speed
+    num_clusters: int = 6
+
+
+class EmbeddingSpacePoint(BaseModel):
+    job_id: str
+    title: str
+    company: str
+    x: float
+    y: float
+    cluster: int
+    final_score: float  # hybrid score against this resume, for tooltip/color intensity
+
+
+class EmbeddingSpaceResponse(BaseModel):
+    points: list[EmbeddingSpacePoint]
+    resume_x: float
+    resume_y: float
+    num_clusters: int
+    total_jobs_in_index: int
+    jobs_shown: int
+
+
 # --- Auth ---
 
 class SignupRequest(BaseModel):
