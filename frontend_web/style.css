@@ -408,6 +408,70 @@
    .btn-find:hover { opacity: 0.88; }
    .btn-find:disabled { opacity: 0.5; cursor: not-allowed; }
    
+   .viz-section {
+     margin-top: 44px;
+     padding-top: 28px;
+     border-top: 1px solid var(--border);
+   }
+   
+   .viz-header {
+     display: flex;
+     align-items: center;
+     justify-content: space-between;
+     margin-bottom: 10px;
+   }
+   
+   .viz-caption {
+     font-size: 13px;
+     color: var(--text-muted);
+     max-width: 640px;
+     margin: 0 0 18px;
+     line-height: 1.6;
+   }
+   
+   .embedding-svg {
+     width: 100%;
+     height: auto;
+     background: var(--surface);
+     border: 1px solid var(--border);
+     border-radius: var(--radius-md);
+   }
+   
+   .viz-legend {
+     display: flex;
+     flex-wrap: wrap;
+     gap: 14px;
+     margin-top: 14px;
+   }
+   
+   .viz-legend-item {
+     display: flex;
+     align-items: center;
+     gap: 6px;
+     font-family: var(--font-mono);
+     font-size: 12px;
+     color: var(--text-muted);
+   }
+   
+   .viz-legend-swatch {
+     width: 10px;
+     height: 10px;
+     border-radius: 50%;
+     display: inline-block;
+   }
+   
+   .viz-legend-swatch-resume {
+     background: var(--text-primary);
+     border-radius: 2px;
+   }
+   
+   .viz-footnote {
+     font-size: 12px;
+     color: var(--text-faint);
+     margin-top: 12px;
+     line-height: 1.6;
+   }
+   
    .filters-bar {
      display: flex;
      flex-wrap: wrap;
