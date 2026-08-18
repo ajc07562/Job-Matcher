@@ -16,34 +16,34 @@ tell you *why* a match is good or what skill gap to close. This tool fixes both.
 ## Architecture
 
 ```
-                        ┌───────────────────-──┐
+                        ┌─────────────────────┐
                         │  Greenhouse Job      │
                         │  Board APIs          │  (ingest.py)
                         └──────────┬───────────┘
                                    │ raw listings (JSON)
                                    ▼
-                        ┌──────────────────-───┐
+                        ┌─────────────────────┐
                         │  Skill Extraction    │  (skills.py)
                         │  (taxonomy match)    │
                         └──────────┬───────────┘
                                    ▼
-   ┌──────────┐         ┌──────────────────-───┐
+   ┌──────────┐         ┌─────────────────────┐
    │  Resume  │────────▶│  Embedding Model     │  (embeddings.py)
    │  (text)  │         │  sentence-transformers│  local, no API key
    └──────────┘         └──────────┬───────────┘
                                    ▼
-                        ┌─────────────────-────┐
+                        ┌─────────────────────┐
                         │  FAISS Vector Index  │  (vectorstore.py)
                         └──────────┬───────────┘
                                    ▼
-                        ┌────────────────--────┐
+                        ┌─────────────────────┐
                         │  Hybrid Re-Ranker    │  (ranker.py)
                         │  0.6 cosine sim      │
                         │  0.3 skill overlap   │
                         │  0.1 seniority fit   │
                         └──────────┬───────────┘
                                    ▼
-                        ┌───────────────-──────┐
+                        ┌─────────────────────┐
                         │  Claude API          │  (llm.py)
                         │  "why this fits" +   │
                         │  gap analysis         │
@@ -107,6 +107,28 @@ network (useful right after you've manually edited `data/companies.json` or run
 
 Auto-refresh is off by default because it's an outbound-network side effect running on
 a timer — worth turning on deliberately, not silently.
+
+## Embedding space visualization
+
+Click "View embedding space" below the results to see a 2D projection of the entire
+job corpus (PCA) with jobs colored by k-means cluster, and your resume plotted in the
+same coordinate space — a look inside what the retrieval step is actually doing
+rather than just its output.
+
+- **PCA and k-means are both implemented directly with numpy** (`backend/embedding_viz.py`)
+  rather than pulling in scikit-learn — they're small, well-understood algorithms, and
+  keeping them in one plain-numpy file makes the actual math inspectable instead of
+  hidden behind a library call. Both are unit-tested against known-correct cases (e.g.
+  k-means correctly recovering 3 well-separated synthetic clusters; PCA exactly
+  preserving pairwise distances for data that's genuinely 2D).
+- Each point's color/tooltip score reuses the exact same hybrid ranking (`rank_jobs`)
+  as the results page — it's not a separate metric invented for the visualization.
+- The axes are unitless (principal components, not a real-world measurement) —
+  **distance between points is the meaningful signal, not direction**. This is called
+  out directly in the UI so it doesn't get misread as two named dimensions.
+- Capped at 300 jobs by default (`max_jobs` in the request) for responsiveness; sampled
+  with a fixed seed so re-plotting the same resume gives the same scatter, not a
+  different random subset each time.
 
 ## Filters & sorting
 
