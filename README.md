@@ -1,4 +1,4 @@
-# Job Matcher — Semantic Job Search with Hybrid Ranking + GenAI Explanations
+# Fit Scope — Semantic Job Search with Hybrid Ranking + GenAI Explanations
 
 Point it at your resume, point it at a pile of real job listings, get back a ranked
 shortlist with a plain-English explanation of *why* each job fits and what's missing.
