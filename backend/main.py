@@ -3,16 +3,21 @@ import re
 from pathlib import Path
 from typing import Optional
 
+import numpy as np
+
 from fastapi import Depends, FastAPI, File, Header, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from backend import auth, db
 from backend.config import AUTO_REFRESH_JOBS, JOBS_FILE, REFRESH_INTERVAL_HOURS, SAMPLE_JOBS_FILE
+from backend.embedding_viz import kmeans, pca_2d
 from backend.embeddings import embed_text, embed_texts, job_text_for_embedding
 from backend.ingest import fetch_company_jobs, load_default_companies
 from backend.llm import explain_match, is_available as llm_available
 from backend.models import (
+    EmbeddingSpaceRequest,
+    EmbeddingSpaceResponse,
     Job,
     LoginRequest,
     MatchRequest,
@@ -301,6 +306,73 @@ def match(req: MatchRequest):
             result.explanation = explain_match(req.resume_text, result)
 
     return final
+
+
+@app.post("/embedding-space", response_model=EmbeddingSpaceResponse)
+def embedding_space(req: EmbeddingSpaceRequest):
+    """
+    2D PCA projection of the job corpus plus the resume, with jobs k-means-clustered
+    by embedding — purely a "look inside the black box" visualization, not part of
+    the matching/ranking pipeline itself. Reuses the exact same hybrid scoring as
+    /match for each point's score (rank_jobs), so a point's color/tooltip score here
+    means exactly the same thing it does on the results page.
+    """
+    if _store is None or len(_store) == 0:
+        raise HTTPException(status_code=503, detail="Job index not ready or empty.")
+
+    total = len(_store)
+    max_jobs = max(2, min(req.max_jobs, total))
+
+    if total > max_jobs:
+        # Fixed seed: re-running with the same resume gives the same scatter plot,
+        # rather than a different random subset jumping around on every request.
+        indices = np.random.default_rng(42).choice(total, size=max_jobs, replace=False)
+    else:
+        indices = np.arange(total)
+
+    sampled_jobs = [_store.jobs[i] for i in indices]
+    sampled_vectors = _store.vectors[indices]
+
+    resume_vec = embed_text(req.resume_text)
+    resume_seniority = _guess_resume_seniority(req.resume_text)
+
+    # Vectors are L2-normalized (see embeddings.py), so a plain dot product IS
+    # cosine similarity — same math FAISS's IndexFlatIP does internally.
+    embedding_scores = sampled_vectors @ resume_vec
+    candidates = list(zip(sampled_jobs, embedding_scores.tolist()))
+    scored = rank_jobs(candidates, req.resume_text, resume_seniority)
+    score_by_id = {r.job.id: r.final_score for r in scored}
+
+    # PCA over jobs + resume together, so the resume point lands in the same
+    # coordinate space as the job points instead of being projected separately.
+    combined = np.vstack([sampled_vectors, resume_vec.reshape(1, -1)])
+    projected = pca_2d(combined)
+    job_points_2d = projected[:-1]
+    resume_point_2d = projected[-1]
+
+    cluster_labels = kmeans(sampled_vectors, k=req.num_clusters)
+
+    points = [
+        EmbeddingSpacePoint(
+            job_id=job.id,
+            title=job.title,
+            company=job.company,
+            x=float(x),
+            y=float(y),
+            cluster=int(cluster),
+            final_score=round(score_by_id.get(job.id, 0.0), 4),
+        )
+        for job, (x, y), cluster in zip(sampled_jobs, job_points_2d, cluster_labels)
+    ]
+
+    return EmbeddingSpaceResponse(
+        points=points,
+        resume_x=float(resume_point_2d[0]),
+        resume_y=float(resume_point_2d[1]),
+        num_clusters=int(cluster_labels.max()) + 1 if len(cluster_labels) > 0 else 0,
+        total_jobs_in_index=total,
+        jobs_shown=len(sampled_jobs),
+    )
 
 
 # Serve the static frontend (login/signup + app UI) last, as a catch-all,
