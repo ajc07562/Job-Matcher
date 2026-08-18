@@ -99,6 +99,19 @@
       <div class="empty-state">Paste a resume above and click "Find matches" to get ranked results.</div>
     </div>
 
+    <div class="viz-section">
+      <div class="viz-header">
+        <div class="section-title" style="margin-bottom: 0;">Embedding space</div>
+        <button class="btn-ghost" id="viz-btn" onclick="showEmbeddingSpace()">View embedding space</button>
+      </div>
+      <p class="viz-caption">
+        A 2D projection (PCA) of every job's embedding vector, clustered by similarity
+        (k-means). Your resume's position shows where it actually sits relative to the
+        job corpus — this is what "semantic search" is doing under the hood.
+      </p>
+      <div id="viz-container"></div>
+    </div>
+
   </div>
 </div>
 
