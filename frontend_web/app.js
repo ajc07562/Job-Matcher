@@ -308,3 +308,101 @@ function toggleHistory() {
 // Load saved-match ids and available filter options on page load.
 loadHistory();
 loadCompanyOptions();
+
+// --- Embedding space visualization ---
+
+const CLUSTER_COLORS = [
+  "#5EEAD4", // mint (accent)
+  "#8B93F8", // indigo
+  "#FBBF24", // amber
+  "#F472B6", // pink
+  "#38BDF8", // sky
+  "#A78BFA", // violet
+  "#FB923C", // orange
+  "#34D399", // green
+];
+
+async function showEmbeddingSpace() {
+  const resumeText = document.getElementById("resume-input").value.trim();
+  const container = document.getElementById("viz-container");
+  const btn = document.getElementById("viz-btn");
+
+  if (!resumeText) {
+    container.innerHTML = `<div class="empty-state">Paste a resume first.</div>`;
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = "Loading…";
+  container.innerHTML = `<div class="loading-state">Projecting embeddings to 2D and clustering…</div>`;
+
+  try {
+    const resp = await authFetch("/embedding-space", {
+      method: "POST",
+      body: JSON.stringify({ resume_text: resumeText, max_jobs: 300, num_clusters: 6 }),
+    });
+    if (!resp.ok) {
+      const err = await resp.json().catch(function () { return {}; });
+      throw new Error(err.detail || "Request failed.");
+    }
+    const data = await resp.json();
+    container.innerHTML = renderEmbeddingSpaceSvg(data);
+  } catch (err) {
+    container.innerHTML = `<div class="empty-state">Error: ${escapeHtml(err.message)}</div>`;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "View embedding space";
+  }
+}
+
+function renderEmbeddingSpaceSvg(data) {
+  if (!data.points || data.points.length === 0) {
+    return `<div class="empty-state">No jobs available to plot.</div>`;
+  }
+
+  const allX = data.points.map((p) => p.x).concat([data.resume_x]);
+  const allY = data.points.map((p) => p.y).concat([data.resume_y]);
+  const minX = Math.min(...allX), maxX = Math.max(...allX);
+  const minY = Math.min(...allY), maxY = Math.max(...allY);
+
+  const width = 700, height = 440, padding = 32;
+  const rangeX = (maxX - minX) || 1; // guard against a degenerate zero-range axis
+  const rangeY = (maxY - minY) || 1;
+
+  const toSvgX = (x) => padding + ((x - minX) / rangeX) * (width - 2 * padding);
+  const toSvgY = (y) => height - padding - ((y - minY) / rangeY) * (height - 2 * padding); // flip so higher values plot upward
+
+  const circles = data.points.map((p) => {
+    const color = CLUSTER_COLORS[p.cluster % CLUSTER_COLORS.length];
+    const cx = toSvgX(p.x).toFixed(1);
+    const cy = toSvgY(p.y).toFixed(1);
+    const title = `${p.title} — ${p.company} (${Math.round(p.final_score * 100)}% fit)`;
+    return `<circle cx="${cx}" cy="${cy}" r="5" fill="${color}" fill-opacity="0.8" stroke="${color}" stroke-width="1"><title>${escapeHtml(title)}</title></circle>`;
+  }).join("");
+
+  const rx = toSvgX(data.resume_x).toFixed(1);
+  const ry = toSvgY(data.resume_y).toFixed(1);
+  const resumeMarker = `
+    <circle cx="${rx}" cy="${ry}" r="10" fill="none" stroke="#ECEFF4" stroke-width="2"><title>Your resume</title></circle>
+    <circle cx="${rx}" cy="${ry}" r="3.5" fill="#ECEFF4"><title>Your resume</title></circle>
+  `;
+
+  const legendItems = Array.from({ length: data.num_clusters }, (_, i) =>
+    `<span class="viz-legend-item"><span class="viz-legend-swatch" style="background:${CLUSTER_COLORS[i % CLUSTER_COLORS.length]}"></span>Cluster ${i + 1}</span>`
+  ).join("");
+
+  return `
+    <svg viewBox="0 0 ${width} ${height}" class="embedding-svg" xmlns="http://www.w3.org/2000/svg">
+      ${circles}
+      ${resumeMarker}
+    </svg>
+    <div class="viz-legend">
+      <span class="viz-legend-item"><span class="viz-legend-swatch viz-legend-swatch-resume"></span>Your resume</span>
+      ${legendItems}
+    </div>
+    <div class="viz-footnote">
+      Showing ${data.jobs_shown} of ${data.total_jobs_in_index} jobs in the index. Hover a point for details.
+      Axes are unitless (principal components, not a real measurement) — distance between points is what matters, not direction.
+    </div>
+  `;
+}
