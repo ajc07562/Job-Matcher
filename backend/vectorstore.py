@@ -15,10 +15,12 @@ class JobVectorStore:
         self.dim = dim
         self.index = faiss.IndexFlatIP(dim)
         self.jobs: list[Job] = []
+        self.vectors: np.ndarray = np.zeros((0, dim), dtype="float32")
 
     def build(self, jobs: list[Job], vectors: np.ndarray) -> None:
         assert len(jobs) == vectors.shape[0], "jobs and vectors must align 1:1"
         self.jobs = list(jobs)
+        self.vectors = vectors.astype("float32")  # kept for the embedding-space viz (PCA/k-means need the raw matrix, not just FAISS's internal index)
         self.index = faiss.IndexFlatIP(vectors.shape[1])
         self.index.add(vectors)
 
