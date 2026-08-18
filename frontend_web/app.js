@@ -347,12 +347,46 @@ async function showEmbeddingSpace() {
     }
     const data = await resp.json();
     container.innerHTML = renderEmbeddingSpaceSvg(data);
+    attachVizTooltipHandlers(container);
   } catch (err) {
     container.innerHTML = `<div class="empty-state">Error: ${escapeHtml(err.message)}</div>`;
   } finally {
     btn.disabled = false;
     btn.textContent = "View embedding space";
   }
+}
+
+// Native SVG <title> hover tooltips are unreliable in Safari (WebKit has long-standing
+// bugs where they simply never appear, or take an unusably long delay) — so this is a
+// real custom tooltip instead, driven by JS mouse events and a single reused div. Works
+// consistently across browsers and lets the tooltip match the rest of the UI's styling.
+function attachVizTooltipHandlers(container) {
+  const svg = container.querySelector(".embedding-svg");
+  if (!svg) return;
+
+  let tooltip = document.getElementById("viz-tooltip");
+  if (!tooltip) {
+    tooltip = document.createElement("div");
+    tooltip.id = "viz-tooltip";
+    tooltip.className = "viz-tooltip";
+    document.body.appendChild(tooltip);
+  }
+
+  svg.addEventListener("mousemove", (e) => {
+    const target = e.target.closest("circle[data-tooltip]");
+    if (!target) {
+      tooltip.style.display = "none";
+      return;
+    }
+    tooltip.textContent = target.getAttribute("data-tooltip");
+    tooltip.style.display = "block";
+    tooltip.style.left = e.clientX + 14 + "px";
+    tooltip.style.top = e.clientY + 14 + "px";
+  });
+
+  svg.addEventListener("mouseleave", () => {
+    tooltip.style.display = "none";
+  });
 }
 
 function renderEmbeddingSpaceSvg(data) {
@@ -376,20 +410,34 @@ function renderEmbeddingSpaceSvg(data) {
     const color = CLUSTER_COLORS[p.cluster % CLUSTER_COLORS.length];
     const cx = toSvgX(p.x).toFixed(1);
     const cy = toSvgY(p.y).toFixed(1);
-    const title = `${p.title} — ${p.company} (${Math.round(p.final_score * 100)}% fit)`;
-    return `<circle cx="${cx}" cy="${cy}" r="5" fill="${color}" fill-opacity="0.8" stroke="${color}" stroke-width="1"><title>${escapeHtml(title)}</title></circle>`;
+    const tooltipText = `${p.title} — ${p.company} (${Math.round(p.final_score * 100)}% fit)`;
+    return `<circle cx="${cx}" cy="${cy}" r="5" fill="${color}" fill-opacity="0.8" stroke="${color}" stroke-width="1" data-tooltip="${escapeHtml(tooltipText)}"></circle>`;
   }).join("");
 
   const rx = toSvgX(data.resume_x).toFixed(1);
   const ry = toSvgY(data.resume_y).toFixed(1);
   const resumeMarker = `
-    <circle cx="${rx}" cy="${ry}" r="10" fill="none" stroke="#ECEFF4" stroke-width="2"><title>Your resume</title></circle>
-    <circle cx="${rx}" cy="${ry}" r="3.5" fill="#ECEFF4"><title>Your resume</title></circle>
+    <circle cx="${rx}" cy="${ry}" r="10" fill="none" stroke="#ECEFF4" stroke-width="2" data-tooltip="Your resume"></circle>
+    <circle cx="${rx}" cy="${ry}" r="3.5" fill="#ECEFF4" data-tooltip="Your resume"></circle>
   `;
 
-  const legendItems = Array.from({ length: data.num_clusters }, (_, i) =>
-    `<span class="viz-legend-item"><span class="viz-legend-swatch" style="background:${CLUSTER_COLORS[i % CLUSTER_COLORS.length]}"></span>Cluster ${i + 1}</span>`
-  ).join("");
+  // "Cluster 1/2/3..." on its own means nothing — it's just an arbitrary numeric ID
+  // k-means assigns, with no inherent meaning until you know what's actually in it.
+  // Showing a couple of example titles from each cluster turns that opaque number
+  // into something you can actually read.
+  const clusters = {};
+  for (const p of data.points) {
+    if (!clusters[p.cluster]) clusters[p.cluster] = [];
+    clusters[p.cluster].push(p.title);
+  }
+  const legendItems = Array.from({ length: data.num_clusters }, (_, i) => {
+    const titlesInCluster = clusters[i] || [];
+    const examples = [...new Set(titlesInCluster)].slice(0, 2).join(", ") || "no jobs";
+    return `<span class="viz-legend-item">
+      <span class="viz-legend-swatch" style="background:${CLUSTER_COLORS[i % CLUSTER_COLORS.length]}"></span>
+      Cluster ${i + 1} (${titlesInCluster.length}): <span class="viz-legend-examples">${escapeHtml(examples)}${titlesInCluster.length > 2 ? ", …" : ""}</span>
+    </span>`;
+  }).join("");
 
   return `
     <svg viewBox="0 0 ${width} ${height}" class="embedding-svg" xmlns="http://www.w3.org/2000/svg">
