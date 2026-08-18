@@ -16,6 +16,7 @@ from backend.embeddings import embed_text, embed_texts, job_text_for_embedding
 from backend.ingest import fetch_company_jobs, load_default_companies
 from backend.llm import explain_match, is_available as llm_available
 from backend.models import (
+    EmbeddingSpacePoint,
     EmbeddingSpaceRequest,
     EmbeddingSpaceResponse,
     Job,
